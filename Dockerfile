@@ -1,5 +1,5 @@
-# Base build stage
-FROM python:3.13-slim AS builder 
+# Use the official Python runtime image
+FROM python:3.13  
  
 # Create the app directory
 RUN mkdir /app
@@ -16,38 +16,17 @@ ENV PYTHONUNBUFFERED=1
 # Upgrade pip
 RUN pip install --upgrade pip 
  
-# Copy the Django project  and install dependencies
-COPY requirements.txt  /app/
- 
-# run this command to install all dependencies 
+# Copy the Django requirements and install dependencies
+COPY requirements.txt .
+
+# Install dependecies
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Production stage
-FROM python:3.13-slim
-
-RUN useradd -m -r appuser && \
- mkdir /app && \
- chown -R appuser /app
-
-# Copy the Python dependencies from the builder stage
-COPY --from=builder /usr/local/lib/python3.13/site-packages/ /usr/local/lib/python3.13/site-packages
-COPY --from=builder /usr/local/bin/ /usr/local/bin/ 
-
-# Set the working directory
-WORKDIR /app
-
-# Copy application code
-COPY --chown=appuser:appuser . .
-
-# Set environment variables to optimize Python
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1 
  
-# Switch to non-root user
-USER appuser
-
-# Expose the application port
+# Copy the Django project to the container
+COPY . .
+ 
+# Expose the Django port
 EXPOSE 8000
  
-# Start the apllication using gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "library_api.wsgi:application"]
+# Run Django’s development server
+ENTRYPOINT [ "/app/bash.sh" ]
