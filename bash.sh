@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Create migrations"
-python manage.py makemigration library_api
+python manage.py makemigrations
 echo "===================================="
 
 echo "Migrate"
