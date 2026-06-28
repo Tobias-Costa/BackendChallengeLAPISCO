@@ -1,14 +1,19 @@
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
 from .models import Authors, Books
 from .serializers import authorsSerializer, booksSerializer
+from .paginator import CustomPagination
 
 class Author(APIView):
 
     def get(self, request):
         obj = Authors.objects.all()
+        paginator = CustomPagination()
+        page = paginator.paginate_queryset(obj, request)
+        if page is not None:
+            serializer = authorsSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
         serializer = authorsSerializer(obj, many=True)
         return Response(serializer.data, status=200)
     
@@ -57,9 +62,15 @@ class Book(APIView):
           
         return serializer_data
 
-
     def get(self, request):
         obj = Books.objects.all().prefetch_related("authors")
+        paginator = CustomPagination()
+        page = paginator.paginate_queryset(obj, request)
+        if page is not None:
+            serializer = booksSerializer(page, many=True)
+            serializer_data = self.get_authors(serializer.data, obj)
+            return paginator.get_paginated_response(serializer_data)
+
         serializer = booksSerializer(obj, many=True)
         serializer_data = self.get_authors(serializer.data, obj)
         return Response(serializer_data, status=200)
@@ -84,7 +95,7 @@ class BookByID(APIView):
         return get_object_or_404(Books, id=id)
         
     def get(self, request, id=None):
-        instance = self.get_object(id)
+        instance = self.get_object(id)      
         serializer = booksSerializer(instance)
         serializer_data = self.get_authors(serializer.data, instance)
         return Response(serializer_data, status=200)
