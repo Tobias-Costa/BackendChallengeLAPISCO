@@ -2,11 +2,15 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Authors, Books
-from .serializers import authorsSerializer, booksSerializer
+from .serializers import AuthorsSerializer, BooksSerializer
 from .paginator import CustomPagination
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 
 class Author(APIView):
     """Gerencia a listagem e criação global de autores."""
+    # Define o serializer para o Swagger(Gerenciador da documentação)
+    serializer_class = AuthorsSerializer
 
     def get(self, request):
         """Lista todos os autores com paginação."""
@@ -14,16 +18,16 @@ class Author(APIView):
         paginator = CustomPagination()
         page = paginator.paginate_queryset(obj, request)
         if page is not None:
-            serializer = authorsSerializer(page, many=True)
+            serializer = AuthorsSerializer(page, many=True)
             return paginator.get_paginated_response(serializer.data)
         # Em caso de erro do paginator, retorna serializer padrão
-        serializer = authorsSerializer(obj, many=True)
+        serializer = AuthorsSerializer(obj, many=True)
         return Response(serializer.data, status=200)
     
     def post(self, request):
         """Valida e cria um novo autor."""
         received_data=request.data
-        serializer = authorsSerializer(data=received_data)
+        serializer = AuthorsSerializer(data=received_data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=201)
@@ -31,7 +35,9 @@ class Author(APIView):
     
 class AuthorByID(APIView):
     """Gerencia operações individuais (GET, PUT, DELETE) de um autor por ID."""
-    
+    # Define o serializer para o Swagger(Gerenciador da documentação)
+    serializer_class = AuthorsSerializer
+
     def get_object(self, id):
         """Busca o autor ou retorna erro 404 caso não exista."""
         return get_object_or_404(Authors, id=id)
@@ -39,14 +45,14 @@ class AuthorByID(APIView):
     def get(self, request, id=None):
         """Retorna os dados de um autor específico."""
         instance = self.get_object(id)
-        serializer = authorsSerializer(instance)
+        serializer = AuthorsSerializer(instance)
         return Response(serializer.data)
     
     def put(self, request, id=None):
         """Atualiza os dados de um autor específico."""
         data = request.data
         instance = self.get_object(id)
-        serializer = authorsSerializer(instance, data=data)
+        serializer = AuthorsSerializer(instance, data=data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=200)
@@ -55,13 +61,15 @@ class AuthorByID(APIView):
     def delete(self, request, id=None):
         """Exclui um autor e retorna os dados do registro deletado."""
         instance=self.get_object(id)
-        serializer=authorsSerializer(instance)
+        serializer=AuthorsSerializer(instance)
         instance.delete()
         return Response(serializer.data)
 
 class Book(APIView):
     """Gerencia a listagem, filtragem e criação global de livros."""
-
+    # Define o serializer para o Swagger(Gerenciador da documentação)
+    serializer_class = BooksSerializer
+    
     def get_authors(self, serializer_data, is_many):
         """Injeta dinamicamente ID e nome dos autores no JSON gerado pelo serializer."""
         if is_many:
@@ -73,7 +81,14 @@ class Book(APIView):
             serializer_data["authors"] =  [{"id":author.id, "name":author.name} for author in book_obj.authors.all() ]
           
         return serializer_data
-
+    
+    # Decorator para detalhar os parâmetros de filtragem na documentação
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name='title', type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='author', type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+        ]
+    )
     def get(self, request):
         """Filtra, ordena por título, pagina e lista os livros."""
         # Setup dos objetos e do paginator
@@ -95,18 +110,18 @@ class Book(APIView):
         # Paginação
         page = paginator.paginate_queryset(obj, request)
         if page is not None:
-            serializer = booksSerializer(page, many=True)
+            serializer = BooksSerializer(page, many=True)
             serializer_data = self.get_authors(serializer.data, is_many=True)
             return paginator.get_paginated_response(serializer_data)
         # Caso dê erro na paginação, retorna serializer padrão
-        serializer = booksSerializer(obj, many=True)
+        serializer = BooksSerializer(obj, many=True)
         serializer_data = self.get_authors(serializer.data, is_many=True)
         return Response(serializer_data, status=200)
 
     def post(self, request):
         """Cria um livro e injeta seus autores na resposta de sucesso."""
         received_data=request.data
-        serializer = booksSerializer(data=received_data)
+        serializer = BooksSerializer(data=received_data)
         if serializer.is_valid():
             serializer.save()
             serializer_data = self.get_authors(serializer.data, is_many=False)
@@ -115,6 +130,8 @@ class Book(APIView):
     
 class BookByID(APIView):
     """Gerencia operações individuais (GET, PUT, DELETE) de um livro por ID."""
+    # Define o serializer para o Swagger(Gerenciador da documentação)
+    serializer_class = BooksSerializer
 
     def get_authors(self, serializer_data):
         """Injeta os autores no JSON de um único livro."""
@@ -129,7 +146,7 @@ class BookByID(APIView):
     def get(self, request, id=None):
         """Retorna os dados de um livro específico com seus autores."""
         instance = self.get_object(id)      
-        serializer = booksSerializer(instance)
+        serializer = BooksSerializer(instance)
         serializer_data = self.get_authors(serializer.data)
         return Response(serializer_data, status=200)
     
@@ -137,7 +154,7 @@ class BookByID(APIView):
         """Atualiza um livro e retorna seus dados atualizados com os autores."""
         data = request.data
         instance = self.get_object(id)
-        serializer = booksSerializer(instance, data=data)
+        serializer = BooksSerializer(instance, data=data)
         if serializer.is_valid():
             serializer.save()
             serializer_data = self.get_authors(serializer.data)
@@ -147,6 +164,6 @@ class BookByID(APIView):
     def delete(self, request, id=None):
         """Exclui um livro e retorna o JSON do registro deletado."""
         instance=self.get_object(id)
-        serializer=booksSerializer(instance)
+        serializer=BooksSerializer(instance)
         instance.delete()
         return Response(serializer.data)

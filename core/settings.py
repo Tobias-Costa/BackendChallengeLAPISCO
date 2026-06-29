@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    "library_api"
+    "drf_spectacular",
+    "library_api",
 ]
 
 MIDDLEWARE = [
@@ -130,4 +131,13 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [], 
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE':'Book & Author API',
+    'DESCRIPTION':'Este projeto é uma API RESTful de alta performance desenvolvida para o gerenciamento centralizado de livros e seus respectivos autores, com suporte a relacionamentos muitos-para-muitos (ManyToMany), paginação customizada e filtros de busca inteligente.',
+    'VERSION':'1.0.0',
+    'SERVE_INCLUDE_SCHEMA':False,
 }
