@@ -55,7 +55,7 @@ Acesse a [documentação](http://127.0.0.1:8000/api/docs/) para mais informaçõ
 
 ## 🛣️ Endpoints da API
 
-### Autores (`/api/author/`)
+### Autores (`/api/authors/`)
 
 | Método | Endpoint | Descrição | Parâmetros da URL |
 | :--- | :--- | :--- | :--- |
@@ -65,7 +65,7 @@ Acesse a [documentação](http://127.0.0.1:8000/api/docs/) para mais informaçõ
 | **PUT** | `/api/authors/<id>/` | Atualiza os dados de um autor | `id` (inteiro) + JSON |
 | **DELETE**| `/api/authors/<id>/` | Deleta um autor específico | `id` (inteiro) |
 
-### Livros (`/api/book/`)
+### Livros (`/api/books/`)
 
 | Método | Endpoint | Descrição | Parâmetros da URL |
 | :--- | :--- | :--- | :--- |
