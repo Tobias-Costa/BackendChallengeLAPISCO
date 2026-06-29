@@ -52,13 +52,15 @@ class AuthorByID(APIView):
 
 class Book(APIView):
 
-    def get_authors(self, serializer_data, obj):
+    def get_authors(self, serializer_data, is_many):
         '''obtêm dados de autores através do id'''
-        try:
-            for book_data, obj_data in zip(serializer_data, obj):
-                book_data["authors"] = [{"id":author.id, "name":author.name} for author in obj_data.authors.all() ]
-        except TypeError:
-            serializer_data["authors"] =  [{"id":author.id, "name":author.name} for author in obj.authors.all() ]
+        if is_many:
+            for book_data in serializer_data:
+                book_obj = Books.objects.prefetch_related("authors").get(id=book_data["id"])
+                book_data["authors"] = [{"id":author.id, "name":author.name} for author in book_obj.authors.all() ]
+        else:
+            book_obj = Books.objects.prefetch_related("authors").get(id=serializer_data["id"])
+            serializer_data["authors"] =  [{"id":author.id, "name":author.name} for author in book_obj.authors.all() ]
           
         return serializer_data
 
@@ -68,27 +70,28 @@ class Book(APIView):
         page = paginator.paginate_queryset(obj, request)
         if page is not None:
             serializer = booksSerializer(page, many=True)
-            serializer_data = self.get_authors(serializer.data, obj)
+            serializer_data = self.get_authors(serializer.data, is_many=True)
             return paginator.get_paginated_response(serializer_data)
 
         serializer = booksSerializer(obj, many=True)
-        serializer_data = self.get_authors(serializer.data, obj)
+        serializer_data = self.get_authors(serializer.data, is_many=True)
         return Response(serializer_data, status=200)
 
     def post(self, request):
         received_data=request.data
         serializer = booksSerializer(data=received_data)
         if serializer.is_valid():
-            obj = serializer.save()
-            serializer_data = self.get_authors(serializer.data, obj)
+            serializer.save()
+            serializer_data = self.get_authors(serializer.data, is_many=False)
             return Response(serializer_data, status=201)
         return Response(serializer.errors, status=400)
     
 class BookByID(APIView):
 
-    def get_authors(self, serializer_data, obj):
+    def get_authors(self, serializer_data):
         '''Obtêm dados de autores através do id'''
-        serializer_data["authors"] = [{"id":author.id, "name":author.name} for author in obj.authors.all()]
+        book_obj = Books.objects.prefetch_related("authors").get(id=serializer_data["id"])
+        serializer_data["authors"] = [{"id":author.id, "name":author.name} for author in book_obj.authors.all()]
         return serializer_data
 
     def get_object(self, id):
@@ -97,7 +100,7 @@ class BookByID(APIView):
     def get(self, request, id=None):
         instance = self.get_object(id)      
         serializer = booksSerializer(instance)
-        serializer_data = self.get_authors(serializer.data, instance)
+        serializer_data = self.get_authors(serializer.data)
         return Response(serializer_data, status=200)
     
     def put(self, request, id=None):
@@ -105,8 +108,8 @@ class BookByID(APIView):
         instance = self.get_object(id)
         serializer = booksSerializer(instance, data=data)
         if serializer.is_valid():
-            obj = serializer.save()
-            serializer_data = self.get_authors(serializer.data, obj)
+            serializer.save()
+            serializer_data = self.get_authors(serializer.data)
             return Response(serializer_data, status=200)
         return Response(serializer.errors, status=400)
     
